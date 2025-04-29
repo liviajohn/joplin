@@ -18,6 +18,8 @@ import depNameToNoteProp from '@joplin/lib/services/noteList/depNameToNoteProp';
 import { getTrashFolderId } from '@joplin/lib/services/trash';
 import usePrevious from '../hooks/usePrevious';
 import { WindowIdContext } from '../NewWindowOrIFrame';
+import { NoteEntity } from '@joplin/lib/services/database/types';
+
 
 const logger = Logger.create('NoteListWrapper');
 
@@ -33,6 +35,8 @@ interface Props {
 	notesSortOrderReverse: boolean;
 	columns: NoteListColumns;
 	selectedFolderId: string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+notes: any[];
 }
 
 const StyledRoot = styled.div`
@@ -41,6 +45,21 @@ const StyledRoot = styled.div`
 	overflow: hidden;
 	width: 100%;
 `;
+
+const TabsContainer = styled.div`
+	display: flex;
+	margin: 10px 0;
+`;
+
+const TabButton = styled.button<{ active: boolean }>`
+	flex: 1;
+	padding: 10px;
+    border: 1px solid grey;
+    background-color: black;
+    color: white;	cursor: pointer;
+	font-weight: ${props => (props.active ? 'bold' : 'normal')};
+`;
+
 
 const getTextWidth = (newNoteButtonElement: Element, text: string): number => {
 	const canvas = document.createElement('canvas');
@@ -107,6 +126,7 @@ const useListRenderer = (listRendererId: string, startupPluginsLoaded: boolean) 
 
 export default function NoteListWrapper(props: Props) {
 	const theme = themeStyle(props.themeId);
+	const [activeTab, setActiveTab] = useState<'notes' | 'todos'>('notes');
 	const [controlHeight] = useState(theme.topRowHeight);
 	const listRenderer = useListRenderer(props.listRendererId, props.startupPluginsLoaded);
 	const [newNoteButtonElement, setNewNoteButtonElement] = useState<Element>(null);
@@ -149,10 +169,10 @@ export default function NoteListWrapper(props: Props) {
 			Setting.setValue('notes.sortOrder.field', field);
 		}
 	}, []);
-
+ 
 	const renderHeader = () => {
 		if (!listRenderer || !isMultiColumns) return null;
-
+//rebuild
 		return <NoteListHeader
 			height={theme.noteListHeaderHeight}
 			template={listRenderer.headerTemplate}
@@ -167,18 +187,39 @@ export default function NoteListWrapper(props: Props) {
 	const windowId = useContext(WindowIdContext);
 	const renderNoteList = () => {
 		if (!listRenderer) return null;
-		return <NoteList2
-			windowId={windowId}
-			listRenderer={listRenderer}
-			resizableLayoutEventEmitter={props.resizableLayoutEventEmitter}
-			size={noteListSize}
-			visible={props.visible}
-			columns={columns}
-		/>;
+	
+		const allNotes = props.notes || [];
+	
+		const filteredNotes = allNotes.filter(note => {
+			if (activeTab === 'notes') return !note.is_todo;
+			if (activeTab === 'todos') return note.is_todo;
+			return true;
+		});
+	
+		return (
+			<NoteList2
+				windowId={windowId}
+				listRenderer={listRenderer}
+				resizableLayoutEventEmitter={props.resizableLayoutEventEmitter}
+				size={noteListSize}
+				visible={props.visible}
+				columns={columns}
+				notes={filteredNotes}
+			/>
+		);
 	};
 
 	return (
-		<StyledRoot role='navigation' aria-label={_('Note list')}>
+		<StyledRoot role="navigation" aria-label={_('Note list')}>
+			<TabsContainer>
+				<TabButton active={activeTab === 'notes'} onClick={() => setActiveTab('notes')}>
+					Notes
+				</TabButton>
+				<TabButton active={activeTab === 'todos'} onClick={() => setActiveTab('todos')}>
+					To-Do
+				</TabButton>
+			</TabsContainer>
+
 			<NoteListControls
 				height={controlHeight}
 				width={noteListSize.width}

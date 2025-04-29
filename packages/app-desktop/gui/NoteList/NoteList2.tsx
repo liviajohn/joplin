@@ -332,7 +332,6 @@ const mapStateToProps = (state: AppState, ownProps: ConnectProps) => {
 	const windowState = stateUtils.windowStateById(state, ownProps.windowId);
 
 	return {
-		notes: windowState.notes,
 		folders: state.folders,
 		selectedNoteIds: windowState.selectedNoteIds,
 		selectedFolderId: windowState.selectedFolderId,
@@ -354,5 +353,5 @@ const mapStateToProps = (state: AppState, ownProps: ConnectProps) => {
 		selectedFolderInTrash: itemIsInTrash(selectedFolder),
 	};
 };
-
+//rebuild
 export default connect(mapStateToProps)(NoteList);
